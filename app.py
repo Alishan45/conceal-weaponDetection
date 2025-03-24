@@ -29,6 +29,9 @@ class_names = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pis
 class_name_to_id = {"pistol": 0}  # Update this based on your dataset
 class_filter = [class_name_to_id[cls] for cls in class_names]
 
+# Debugging: Print class filter
+print("Class Filter:", class_filter)  # Debugging
+
 # Dark/Light mode toggle
 dark_mode = st.sidebar.checkbox("Dark Mode", value=True)
 if dark_mode:
