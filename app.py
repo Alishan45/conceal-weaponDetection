@@ -23,7 +23,11 @@ st.markdown("""
 # Sidebar for additional options
 st.sidebar.header("Options")
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.01)
-class_filter = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pistol"])
+class_names = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pistol"])
+
+# Map class names to class IDs
+class_name_to_id = {"pistol": 0}  # Update this based on your dataset
+class_filter = [class_name_to_id[cls] for cls in class_names]
 
 # Dark/Light mode toggle
 dark_mode = st.sidebar.checkbox("Dark Mode", value=True)
@@ -43,7 +47,7 @@ if dark_mode:
 # Load the YOLOv11 model
 @st.cache_resource
 def load_model():
-    return YOLO("./best.pt")
+    return YOLO("/content/runs/detect/yolo11n_finetuned/weights/best.pt")
 
 model = load_model()
 
@@ -94,7 +98,7 @@ else:
 
             # Display the original image
             st.subheader("Original Image")
-            st.image(image, use_column_width=True)
+            st.image(image, use_container_width=True)
 
             # Run inference
             with st.spinner("Running inference..."):
@@ -103,7 +107,7 @@ else:
             # Display the results
             st.subheader("Detected Pistols")
             plotted_image = results[0].plot(line_width=2)
-            st.image(plotted_image, use_column_width=True, caption="Detected Pistols")
+            st.image(plotted_image, use_container_width=True, caption="Detected Pistols")
 
             # Display detection details
             st.write("Detection Details:")
