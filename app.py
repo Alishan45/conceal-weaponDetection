@@ -27,10 +27,7 @@ class_names = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pis
 
 # Map class names to class IDs
 class_name_to_id = {"pistol": 0}  # Update this based on your dataset
-class_filter = [class_name_to_id[cls] for cls in class_names]
-
-# Debugging: Print class filter
-print("Class Filter:", class_filter)  # Debugging
+class_filter = [int(class_name_to_id[cls]) for cls in class_names] if class_names else None
 
 # Dark/Light mode toggle
 dark_mode = st.sidebar.checkbox("Dark Mode", value=True)
@@ -42,6 +39,26 @@ if dark_mode:
             background-color: #1e1e1e;
             color: #ffffff;
         }
+        .st-bq {
+            color: #ffffff;
+        }
+        .sidebar .sidebar-content {
+            color: #ffffff;
+        }
+        .streamlit-expanderHeader {
+            color: #ffffff !important;
+        }
+        .st-cb, .st-cd, .st-ce, .st-bw, .st-bs {
+            color: #ffffff;
+        }
+        /* Ensure sidebar text is clearly visible */
+        .css-1aumxhk, .css-1s0xjmc, .css-pkbazv {
+            color: #ffffff !important;
+        }
+        /* Make sliders and other controls more visible in dark mode */
+        .stSlider, .stCheckbox, .stMultiSelect {
+            color: #ffffff !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -50,7 +67,7 @@ if dark_mode:
 # Load the YOLOv11 model
 @st.cache_resource
 def load_model():
-    return YOLO("/content/runs/detect/yolo11n_finetuned/weights/best.pt")
+    return YOLO("./best.pt")
 
 model = load_model()
 
@@ -84,7 +101,7 @@ if use_webcam:
             break
 
         # Run inference with class filtering (if classes are selected)
-        if class_filter:
+        if class_names:
             results = model(frame, conf=confidence_threshold, classes=class_filter)
         else:
             results = model(frame, conf=confidence_threshold)
@@ -108,7 +125,7 @@ else:
 
             # Run inference with class filtering (if classes are selected)
             with st.spinner("Running inference..."):
-                if class_filter:
+                if class_names:
                     results = model(image, conf=confidence_threshold, classes=class_filter)
                 else:
                     results = model(image, conf=confidence_threshold)
@@ -167,7 +184,7 @@ else:
                         break
 
                     # Run inference with class filtering (if classes are selected)
-                    if class_filter:
+                    if class_names:
                         results = model(frame, conf=confidence_threshold, classes=class_filter)
                     else:
                         results = model(frame, conf=confidence_threshold)
