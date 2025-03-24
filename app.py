@@ -197,3 +197,4 @@ else:
             os.remove(output_path)
     else:
         st.info("Please upload an image or video to get started.")
+
