@@ -23,7 +23,14 @@ st.markdown("""
 # Sidebar for additional options
 st.sidebar.header("Options")
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.01)
-class_filter = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pistol"])
+class_names = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pistol"])
+
+# Map class names to class IDs
+class_name_to_id = {"pistol": 0}  # Update this based on your dataset
+class_filter = [class_name_to_id[cls] for cls in class_names]
+
+# Debugging: Print class filter
+print("Class Filter:", class_filter)  # Debugging
 
 # Dark/Light mode toggle
 dark_mode = st.sidebar.checkbox("Dark Mode", value=True)
@@ -76,8 +83,11 @@ if use_webcam:
             st.error("Failed to capture video from webcam.")
             break
 
-        # Run inference
-        results = model(frame, conf=confidence_threshold, classes=class_filter)
+        # Run inference with class filtering (if classes are selected)
+        if class_filter:
+            results = model(frame, conf=confidence_threshold, classes=class_filter)
+        else:
+            results = model(frame, conf=confidence_threshold)
 
         # Display the results
         plotted_image = results[0].plot(line_width=2)
@@ -96,9 +106,12 @@ else:
             st.subheader("Original Image")
             st.image(image, use_container_width=True)
 
-            # Run inference
+            # Run inference with class filtering (if classes are selected)
             with st.spinner("Running inference..."):
-                results = model(image, conf=confidence_threshold, classes=class_filter)
+                if class_filter:
+                    results = model(image, conf=confidence_threshold, classes=class_filter)
+                else:
+                    results = model(image, conf=confidence_threshold)
 
             # Display the results
             st.subheader("Detected Pistols")
@@ -153,8 +166,11 @@ else:
                     if not ret:
                         break
 
-                    # Run inference
-                    results = model(frame, conf=confidence_threshold, classes=class_filter)
+                    # Run inference with class filtering (if classes are selected)
+                    if class_filter:
+                        results = model(frame, conf=confidence_threshold, classes=class_filter)
+                    else:
+                        results = model(frame, conf=confidence_threshold)
 
                     # Plot the results
                     plotted_frame = results[0].plot(line_width=2)
