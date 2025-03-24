@@ -155,4 +155,45 @@ else:
             # Run inference on the video
             with st.spinner("Running inference on video..."):
                 cap = cv2.VideoCapture(video_path)
-               
+                fps = int(cap.get(cv2.CAP_PROP_FPS))
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                output_path = "output_video.mp4"
+                out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+
+                while cap.isOpened():
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+
+                    # Run inference with class filtering (if classes are selected)
+                    if class_filter:
+                        results = model(frame, conf=confidence_threshold, classes=class_filter)
+                    else:
+                        results = model(frame, conf=confidence_threshold)
+
+                    # Plot the results
+                    plotted_frame = results[0].plot(line_width=2)
+                    out.write(plotted_frame)
+
+                cap.release()
+                out.release()
+
+            # Display the results
+            st.subheader("Detected Pistols in Video")
+            st.video(output_path)
+
+            # Download the results
+            with open(output_path, "rb") as file:
+                st.download_button(
+                    label="Download Result Video",
+                    data=file,
+                    file_name="detected_pistols.mp4",
+                    mime="video/mp4"
+                )
+
+            # Clean up temporary files
+            os.remove(video_path)
+            os.remove(output_path)
+    else:
+        st.info("Please upload an image or video to get started.")
