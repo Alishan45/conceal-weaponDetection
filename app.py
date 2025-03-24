@@ -23,11 +23,7 @@ st.markdown("""
 # Sidebar for additional options
 st.sidebar.header("Options")
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.01)
-
-# Removed class filtering as it's causing issues
-# Instead, just display which classes the model detects
-st.sidebar.markdown("**Classes Detected:**")
-st.sidebar.markdown("- Pistol")
+class_filter = st.sidebar.multiselect("Filter Classes", ["pistol"], default=["pistol"])
 
 # Dark/Light mode toggle
 dark_mode = st.sidebar.checkbox("Dark Mode", value=True)
@@ -39,37 +35,6 @@ if dark_mode:
             background-color: #1e1e1e;
             color: #ffffff;
         }
-        .st-bq {
-            color: #ffffff;
-        }
-        .sidebar .sidebar-content {
-            color: #ffffff;
-        }
-        .streamlit-expanderHeader {
-            color: #ffffff !important;
-        }
-        /* Make sure all sidebar text is visible */
-        .css-1d391kg, .css-hxt7ib, .css-1e5imcs, .css-1aumxhk {
-            color: #ffffff !important;
-        }
-        /* Make headers and text stand out */
-        .sidebar-content div {
-            color: #ffffff !important;
-        }
-        /* Style for sidebar headers */
-        .sidebar .sidebar-content h1, 
-        .sidebar .sidebar-content h2, 
-        .sidebar .sidebar-content h3 {
-            color: #ffffff !important;
-        }
-        /* Style for all text elements */
-        div[data-testid="stSidebarNav"], div[data-testid="stSidebarUserContent"] {
-            color: #ffffff !important;
-        }
-        /* Style for checkboxes and sliders */
-        .stCheckbox, .stSlider {
-            color: #ffffff !important;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -80,11 +45,7 @@ if dark_mode:
 def load_model():
     return YOLO("./best.pt")
 
-try:
-    model = load_model()
-except Exception as e:
-    st.error(f"Failed to load model. Make sure the model path is correct.")
-    st.stop()
+model = load_model()
 
 # Upload image or video
 uploaded_file = st.file_uploader("Upload an image or video", type=["jpg", "jpeg", "png", "mp4"])
@@ -100,6 +61,7 @@ st.sidebar.markdown("""
     - **Model**: YOLOv11n
     - **Dataset**: Custom thermal pistol dataset
     - **Confidence Threshold**: Adjustable
+    - **Class Filtering**: Select specific classes to detect
 """)
 
 if use_webcam:
@@ -114,15 +76,12 @@ if use_webcam:
             st.error("Failed to capture video from webcam.")
             break
 
-        # Run inference without class filtering
-        try:
-            results = model(frame, conf=confidence_threshold)
-            # Display the results
-            plotted_image = results[0].plot(line_width=2)
-            FRAME_WINDOW.image(plotted_image, channels="BGR")
-        except Exception as e:
-            st.error(f"Error during webcam inference: {str(e)}")
-            break
+        # Run inference
+        results = model(frame, conf=confidence_threshold, classes=class_filter)
+
+        # Display the results
+        plotted_image = results[0].plot(line_width=2)
+        FRAME_WINDOW.image(plotted_image, channels="BGR")
 
     camera.release()
 else:
@@ -130,109 +89,95 @@ else:
         # Check if the file is an image or video
         if uploaded_file.type.startswith("image"):
             # Read the image
-            try:
-                image = Image.open(uploaded_file)
-                image = np.array(image)  # Convert to numpy array
+            image = Image.open(uploaded_file)
+            image = np.array(image)  # Convert to numpy array
 
-                # Display the original image
-                st.subheader("Original Image")
-                st.image(image, use_container_width=True)
+            # Display the original image
+            st.subheader("Original Image")
+            st.image(image, use_container_width=True)
 
-                # Run inference without class filtering
-                with st.spinner("Running inference..."):
-                    try:
-                        results = model(image, conf=confidence_threshold)
-                    except Exception as e:
-                        st.error(f"Error during inference: {str(e)}")
-                        st.stop()
+            # Run inference
+            with st.spinner("Running inference..."):
+                results = model(image, conf=confidence_threshold, classes=class_filter)
 
-                # Display the results
-                st.subheader("Detected Pistols")
-                plotted_image = results[0].plot(line_width=2)
-                st.image(plotted_image, use_container_width=True, caption="Detected Pistols")
+            # Display the results
+            st.subheader("Detected Pistols")
+            plotted_image = results[0].plot(line_width=2)
+            st.image(plotted_image, use_container_width=True, caption="Detected Pistols")
 
-                # Display detection details
-                st.write("Detection Details:")
-                for box in results[0].boxes:
-                    class_id = int(box.cls)
-                    confidence = float(box.conf)
-                    bbox = box.xyxy[0].tolist()  # Bounding box coordinates
-                    class_name = "Pistol" if class_id == 0 else f"Class {class_id}"
-                    st.write(f"""
-                        - **Class**: {class_name}
-                        - **Confidence**: {confidence:.2f}
-                        - **Bounding Box**: {bbox}
-                    """)
+            # Display detection details
+            st.write("Detection Details:")
+            for box in results[0].boxes:
+                class_id = int(box.cls)
+                confidence = float(box.conf)
+                bbox = box.xyxy[0].tolist()  # Bounding box coordinates
+                st.write(f"""
+                    - **Class ID**: {class_id}
+                    - **Confidence**: {confidence:.2f}
+                    - **Bounding Box**: {bbox}
+                """)
 
-                # Download the results
-                result_image = Image.fromarray(plotted_image)
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmpfile:
-                    result_image.save(tmpfile.name)
-                    with open(tmpfile.name, "rb") as file:
-                        st.download_button(
-                            label="Download Result",
-                            data=file,
-                            file_name="detected_pistols.jpg",
-                            mime="image/jpeg"
-                        )
-            except Exception as e:
-                st.error(f"Error processing image: {str(e)}")
-
-        elif uploaded_file.type.startswith("video"):
-            try:
-                # Save the uploaded video to a temporary file
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmpfile:
-                    tmpfile.write(uploaded_file.read())
-                    video_path = tmpfile.name
-
-                # Display the original video
-                st.subheader("Original Video")
-                st.video(video_path)
-
-                # Run inference on the video
-                with st.spinner("Running inference on video..."):
-                    cap = cv2.VideoCapture(video_path)
-                    fps = int(cap.get(cv2.CAP_PROP_FPS))
-                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    output_path = "output_video.mp4"
-                    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
-
-                    while cap.isOpened():
-                        ret, frame = cap.read()
-                        if not ret:
-                            break
-
-                        # Run inference without class filtering
-                        try:
-                            results = model(frame, conf=confidence_threshold)
-                            # Plot the results
-                            plotted_frame = results[0].plot(line_width=2)
-                            out.write(plotted_frame)
-                        except Exception as e:
-                            st.error(f"Error during video frame inference: {str(e)}")
-                            break
-
-                    cap.release()
-                    out.release()
-
-                # Display the results
-                st.subheader("Detected Pistols in Video")
-                st.video(output_path)
-
-                # Download the results
-                with open(output_path, "rb") as file:
+            # Download the results
+            result_image = Image.fromarray(plotted_image)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmpfile:
+                result_image.save(tmpfile.name)
+                with open(tmpfile.name, "rb") as file:
                     st.download_button(
-                        label="Download Result Video",
+                        label="Download Result",
                         data=file,
-                        file_name="detected_pistols.mp4",
-                        mime="video/mp4"
+                        file_name="detected_pistols.jpg",
+                        mime="image/jpeg"
                     )
 
-                # Clean up temporary files
-                os.remove(video_path)
-                os.remove(output_path)
-            except Exception as e:
-                st.error(f"Error processing video: {str(e)}")
+        elif uploaded_file.type.startswith("video"):
+            # Save the uploaded video to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmpfile:
+                tmpfile.write(uploaded_file.read())
+                video_path = tmpfile.name
+
+            # Display the original video
+            st.subheader("Original Video")
+            st.video(video_path)
+
+            # Run inference on the video
+            with st.spinner("Running inference on video..."):
+                cap = cv2.VideoCapture(video_path)
+                fps = int(cap.get(cv2.CAP_PROP_FPS))
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                output_path = "output_video.mp4"
+                out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+
+                while cap.isOpened():
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+
+                    # Run inference
+                    results = model(frame, conf=confidence_threshold, classes=class_filter)
+
+                    # Plot the results
+                    plotted_frame = results[0].plot(line_width=2)
+                    out.write(plotted_frame)
+
+                cap.release()
+                out.release()
+
+            # Display the results
+            st.subheader("Detected Pistols in Video")
+            st.video(output_path)
+
+            # Download the results
+            with open(output_path, "rb") as file:
+                st.download_button(
+                    label="Download Result Video",
+                    data=file,
+                    file_name="detected_pistols.mp4",
+                    mime="video/mp4"
+                )
+
+            # Clean up temporary files
+            os.remove(video_path)
+            os.remove(output_path)
     else:
         st.info("Please upload an image or video to get started.")
