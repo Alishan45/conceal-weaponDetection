@@ -80,8 +80,11 @@ if use_webcam:
             st.error("Failed to capture video from webcam.")
             break
 
-        # Run inference
-        results = model(frame, conf=confidence_threshold, classes=class_filter)
+        # Run inference with class filtering (if classes are selected)
+        if class_filter:
+            results = model(frame, conf=confidence_threshold, classes=class_filter)
+        else:
+            results = model(frame, conf=confidence_threshold)
 
         # Display the results
         plotted_image = results[0].plot(line_width=2)
@@ -100,9 +103,12 @@ else:
             st.subheader("Original Image")
             st.image(image, use_container_width=True)
 
-            # Run inference
+            # Run inference with class filtering (if classes are selected)
             with st.spinner("Running inference..."):
-                results = model(image, conf=confidence_threshold, classes=class_filter)
+                if class_filter:
+                    results = model(image, conf=confidence_threshold, classes=class_filter)
+                else:
+                    results = model(image, conf=confidence_threshold)
 
             # Display the results
             st.subheader("Detected Pistols")
@@ -157,8 +163,11 @@ else:
                     if not ret:
                         break
 
-                    # Run inference
-                    results = model(frame, conf=confidence_threshold, classes=class_filter)
+                    # Run inference with class filtering (if classes are selected)
+                    if class_filter:
+                        results = model(frame, conf=confidence_threshold, classes=class_filter)
+                    else:
+                        results = model(frame, conf=confidence_threshold)
 
                     # Plot the results
                     plotted_frame = results[0].plot(line_width=2)
