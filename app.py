@@ -78,7 +78,7 @@ if dark_mode:
 # Load the YOLOv11 model
 @st.cache_resource
 def load_model():
-    return YOLO("/content/runs/detect/yolo11n_finetuned/weights/best.pt")
+    return YOLO("./best.pt")
 
 try:
     model = load_model()
