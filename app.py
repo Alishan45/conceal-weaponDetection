@@ -73,27 +73,29 @@ st.sidebar.markdown("""
 
 if use_webcam:
     st.subheader("Real-Time Webcam Inference")
-    run = st.checkbox("Start Webcam")
-    FRAME_WINDOW = st.image([])
-    camera = cv2.VideoCapture(0)
+    run = st.button("Start Webcam")  # Button to start webcam
 
-    while run:
+    FRAME_WINDOW = st.image([])  # Initialize image container
+    camera = cv2.VideoCapture(0)  # Access webcam
+
+if run:
+    while True:
         ret, frame = camera.read()
         if not ret:
             st.error("Failed to capture video from webcam.")
             break
 
-        # Run inference with class filtering (if classes are selected)
-        if class_filter:
-            results = model(frame, conf=confidence_threshold, classes=class_filter)
-        else:
-            results = model(frame, conf=confidence_threshold)
-
-        # Display the results
+        # Perform inference
+        results = model(frame, conf=0.5)  # Adjust confidence threshold
         plotted_image = results[0].plot(line_width=2)
+
         FRAME_WINDOW.image(plotted_image, channels="BGR")
 
-    camera.release()
+        # Stop when the user clicks Stop
+        if not st.button("Stop Webcam"):
+            break
+
+     camera.release()
 else:
     if uploaded_file is not None:
         # Check if the file is an image or video
