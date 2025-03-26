@@ -1,3 +1,11 @@
+import streamlit as st
+from ultralytics import YOLO
+import cv2
+from PIL import Image
+import numpy as np
+import tempfile
+import os
+
 # Set page title and icon
 st.set_page_config(
     page_title="Thermal Pistol Detection",
@@ -189,3 +197,4 @@ else:
             os.remove(output_path)
     else:
         st.info("Please upload an image or video to get started.")
+
