@@ -38,7 +38,7 @@ The model used in this project is **YOLOv11n**, a lightweight version of the YOL
 ## Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/thermal-pistol-detection.git
+   git clone https://github.com/Alishan45/thermal-pistol-detection.git
    cd thermal-pistol-detection
 pip install -r requirements.txt
 python train.py --data /path/to/dataset.yaml --epochs 100 --imgsz 640
